@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+
+<!-- Code produit par Claude pour expérimenter -->
+
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Palindromes base 2 &amp; 10</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f5f4f0;
+      color: #1a1a18;
+      min-height: 100vh;
+      padding: 3rem 1.5rem;
+    }
+
+    header {
+      max-width: 800px;
+      margin: 0 auto 2.5rem;
+    }
+
+    h1 {
+      font-size: 1.75rem;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      font-size: 0.95rem;
+      color: #5f5e5a;
+    }
+
+    .stats {
+      display: flex;
+      gap: 12px;
+      margin: 1.5rem 0 0;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      background: #fff;
+      border: 0.5px solid rgba(0,0,0,0.12);
+      border-radius: 8px;
+      padding: 0.75rem 1.25rem;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #888780;
+      margin-bottom: 2px;
+    }
+
+    .stat-value {
+      font-size: 1.4rem;
+      font-weight: 500;
+    }
+
+    .controls {
+      max-width: 800px;
+      margin: 0 auto 1.5rem;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .controls label {
+      font-size: 13px;
+      color: #5f5e5a;
+    }
+
+    .controls input[type="number"] {
+      width: 90px;
+      padding: 6px 10px;
+      font-size: 14px;
+      border: 0.5px solid rgba(0,0,0,0.2);
+      border-radius: 8px;
+      background: #fff;
+      outline: none;
+    }
+
+    .controls input[type="number"]:focus {
+      box-shadow: 0 0 0 2px #7f77dd44;
+      border-color: #7f77dd;
+    }
+
+    button#run {
+      padding: 6px 18px;
+      font-size: 14px;
+      border: 0.5px solid rgba(0,0,0,0.2);
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    button#run:hover { background: #eeedfe; }
+    button#run:active { transform: scale(0.98); }
+
+    .grid {
+      max-width: 800px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 10px;
+    }
+
+    .card {
+      background: #fff;
+      border: 0.5px solid rgba(0,0,0,0.1);
+      border-radius: 12px;
+      padding: 1rem 1.25rem;
+      transition: border-color 0.15s;
+    }
+
+    .card:hover { border-color: rgba(0,0,0,0.25); }
+
+    .card-num {
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: #534ab7;
+      margin-bottom: 8px;
+    }
+
+    .card-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .card-base {
+      font-size: 11px;
+      color: #888780;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .card-val {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #3c3489;
+      word-break: break-all;
+      text-align: right;
+    }
+
+    .empty {
+      max-width: 800px;
+      margin: 2rem auto;
+      color: #888780;
+      font-size: 0.95rem;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body { background: #1c1c1a; color: #e8e7e2; }
+      .stat, .card, button#run, .controls input[type="number"] {
+        background: #2a2a27;
+        border-color: rgba(255,255,255,0.1);
+        color: #e8e7e2;
+      }
+      .card-num { color: #afa9ec; }
+      .card-val { color: #cecbf6; }
+      .subtitle, .stat-label, .card-base { color: #888780; }
+      button#run:hover { background: #3c3489; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>Palindromes en base 2 &amp; 10</h1>
+    <p class="subtitle">Nombres lus identiquement dans les deux sens, en décimal et en binaire.</p>
+    <div class="stats">
+      <div class="stat"><div class="stat-label">intervalle</div><div class="stat-value" id="s-range">100 – 999</div></div>
+      <div class="stat"><div class="stat-label">résultats</div><div class="stat-value" id="s-count">—</div></div>
+    </div>
+  </header>
+
+  <div class="controls">
+    <label for="inp-min">De</label>
+    <input type="number" id="inp-min" value="100" min="0" />
+    <label for="inp-max">à</label>
+    <input type="number" id="inp-max" value="999" min="0" />
+    <button id="run">Calculer</button>
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <p class="empty" id="empty" hidden>Aucun palindrome trouvé dans cet intervalle.</p>
+
+  <script>
+    const isPalindrome = str => str === [...str].reverse().join('');
+
+    const findPalindromes = (min, max) => {
+        const results = []
+
+        for(let n = min ; n < max ; n++){
+            if(isPalindrome(n.toString(10)) && isPalindrome(n.toString(2)))
+                results.push(n)
+        }
+
+        return results
+    }
+
+    const render = () => {
+      const min = parseInt(document.getElementById('inp-min').value, 10);
+      const max = parseInt(document.getElementById('inp-max').value, 10);
+
+      if (isNaN(min) || isNaN(max) || min > max) return;
+
+      const results = findPalindromes(min, max);
+      const grid = document.getElementById('grid');
+      const empty = document.getElementById('empty');
+
+      document.getElementById('s-range').textContent = `${min} – ${max}`;
+      document.getElementById('s-count').textContent = results.length;
+
+      grid.innerHTML = '';
+      empty.hidden = results.length > 0;
+
+      for (const n of results) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="card-num">${n}</div>
+          <div class="card-row">
+            <span class="card-base">base 10</span>
+            <span class="card-val">${String(n)}</span>
+          </div>
+          <div class="card-row">
+            <span class="card-base">base 2</span>
+            <span class="card-val">${n.toString(2)}</span>
+          </div>`;
+        grid.appendChild(card);
+      }
+    };
+
+    document.getElementById('run').addEventListener('click', render);
+    document.addEventListener('keydown', e => { if (e.key === 'Enter') render(); });
+
+    render();
+  </script>
+</body>
+</html>
